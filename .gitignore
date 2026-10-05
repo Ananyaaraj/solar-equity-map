@@ -1,0 +1,10 @@
+__pycache__/
+*.pyc
+.venv/
+.env
+.env.local
+data/*.gpkg
+data/*.tif
+outputs/*
+!outputs/.gitkeep
+

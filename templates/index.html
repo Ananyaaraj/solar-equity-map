@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Rooftop Solar & Equity Map - MongoDB Atlas Top 18 Spatial Lab</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Hanken+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+  <main class="shell">
+    <aside class="panel" aria-label="Controls and results">
+      <header>
+        <h1>Solar Equity Map & MongoDB Atlas GIS Lab</h1>
+        <p class="lede">Cloud-native Spatial Database powered by MongoDB Atlas (2dsphere indexing, GeoJSON, $geoNear, $geoWithin, $geoIntersects).</p>
+      </header>
+
+      <!-- Top 18 Solar Panel Spatial Operations Lab Section -->
+      <section aria-labelledby="h-lab" style="border: 2px solid #5e3da8; background: #faf8ff; padding: 12px; border-radius: 8px; margin-bottom: 16px;">
+        <h2 id="h-lab" style="color: #3b1f7a; margin-bottom: 6px;">MongoDB Atlas Solar Spatial Queries</h2>
+        <label for="labOpSelect" style="font-weight: 600; display: block; margin-bottom: 6px;">Select Spatial Operation (18 Total):</label>
+        <select id="labOpSelect" style="width: 100%; padding: 6px; border-radius: 4px; border: 1px solid #9078cf; background: #fff; font-size: 0.85rem;">
+          <option value="7">7. Solar Rooftops within 3 km of Substation ($geoNear)</option>
+          <option value="1">1. Basic CRUD Operations on Solar Rooftops</option>
+          <option value="2">2. Solar Rooftop Attribute Lookup by Coordinate (X, Y)</option>
+          <option value="3">3. High-Solar Priority Zones within City ($geoWithin)</option>
+          <option value="4">4. Priority Solar Rooftops within Zone ($geoWithin)</option>
+          <option value="5">5. Adjacent Solar Planning Zones ($geoIntersects)</option>
+          <option value="6">6. Proximity Search around House ($nearSphere)</option>
+          <option value="8">8. Polygon Union of Solar Planning Zones</option>
+          <option value="9">9. Distance Measurement along Transmission Line</option>
+          <option value="10">10. Centroid of Solar Planning Zone</option>
+          <option value="11">11. Solar Capacity Aggregation Pipeline ($group)</option>
+          <option value="12">12. Optimal Solar Microgrid Site Selection</option>
+          <option value="13">13. 3D Solar Rooftop Elevation Search</option>
+          <option value="14">14. 3D Building Extrusion Block (Polygon to 3D Volume)</option>
+          <option value="15">15. LineString Adjacency Query (Solar Grid Feeders)</option>
+          <option value="16">16. Spatial Overlay Operations (Union, Intersects, SymDiff)</option>
+          <option value="17">17. Substation Proximity Buffer Surface (500m Buffer)</option>
+          <option value="18">18. Spatial KNN Search & Join (K-Nearest Neighbors)</option>
+        </select>
+        <button id="btnRunLabOp" style="width: 100%; margin-top: 8px; padding: 8px; background: #5e3da8; color: #fff; border: none; border-radius: 4px; font-weight: bold; cursor: pointer;">Execute Query on MongoDB Atlas</button>
+        
+        <div id="labResultBox" style="margin-top: 8px; font-size: 0.82rem; background: #1a0f3d; color: #fbd25b; padding: 8px; border-radius: 4px; max-height: 160px; overflow-y: auto; font-family: monospace; display: none;"></div>
+      </section>
+
+      <section aria-labelledby="h-sum">
+        <h2 id="h-sum">City Solar Potential Summary</h2>
+        <dl class="facts" id="facts"><dd>Loading...</dd></dl>
+      </section>
+
+      <section aria-labelledby="h-zone">
+        <h2 id="h-zone">Zone Colours</h2>
+        <div class="seg" role="radiogroup" aria-label="Zone colouring" id="zoneView">
+          <button role="radio" data-v="class" aria-checked="true">Need and solar</button>
+          <button role="radio" data-v="need" aria-checked="false">Need</button>
+          <button role="radio" data-v="pot" aria-checked="false">Solar per home</button>
+          <button role="radio" data-v="income" aria-checked="false">Income</button>
+        </div>
+        <div id="zoneLegend" class="legend"></div>
+      </section>
+
+      <section aria-labelledby="h-roof">
+        <h2 id="h-roof">Roof Colours</h2>
+        <div class="seg" role="radiogroup" aria-label="Roof colouring" id="roofView">
+          <button role="radio" data-v="irr" aria-checked="true">Sunlight</button>
+          <button role="radio" data-v="score" aria-checked="false">Priority score</button>
+          <button role="radio" data-v="program" aria-checked="false">Programme</button>
+        </div>
+        <div id="roofLegend" class="legend"></div>
+
+        <div class="filters">
+          <label>Building type
+            <select id="fUse">
+              <option value="all">All</option>
+              <option value="residential">Homes</option>
+              <option value="commercial">Commercial</option>
+              <option value="institutional">Institutional</option>
+            </select>
+          </label>
+          <label>Occupancy
+            <select id="fOwner">
+              <option value="all">Owners and renters</option>
+              <option value="1">Owner-occupied</option>
+              <option value="0">Rented</option>
+            </select>
+          </label>
+          <label class="wide">Minimum system size: <output id="kwpOut">0 kWp</output>
+            <input type="range" id="fKwp" min="0" max="60" step="1" value="0">
+          </label>
+          <label class="check wide"><input type="checkbox" id="fPrio"> Show priority roofs only</label>
+        </div>
+      </section>
+
+      <section aria-labelledby="h-top">
+        <div class="row">
+          <h2 id="h-top">Top Priority Solar Roofs</h2>
+          <a class="link" href="/api/export/priority.csv">Download CSV</a>
+        </div>
+        <ol class="toplist" id="topList"></ol>
+      </section>
+
+      <footer>
+        <p>MongoDB Atlas Cloud Spatial Database & Leaflet GIS Integration.</p>
+      </footer>
+    </aside>
+
+    <div id="map" role="application" aria-label="Map"></div>
+  </main>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="{{ url_for('static', filename='app.js') }}"></script>
+</body>
+</html>
